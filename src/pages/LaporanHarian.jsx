@@ -5,9 +5,13 @@ import {
   getDay, getDate, parse, isToday,
 } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CalendarDays, Plus, Search, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Plus, Search, Trash2, Download } from 'lucide-react';
 import ModalAbsensi from '../components/ModalAbsensi';
 import ModalConfirm from '../components/ModalConfirm';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const STATUS_CFG = {
   Hadir: { symbol: '✓', bg: 'bg-green-100',  text: 'text-green-700'  },
@@ -109,6 +113,120 @@ export default function LaporanHarian() {
     });
   };
 
+  const exportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Laporan Harian');
+
+    // Styling Headers
+    const headerRow = worksheet.addRow(['Karyawan', 'Jabatan', ...days.map(d => format(d, 'dd MMM'))]);
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4F81BD' }
+      };
+      cell.font = {
+        color: { argb: 'FFFFFFFF' },
+        bold: true
+      };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+
+    // Data Rows
+    filteredKaryawan.forEach(k => {
+      const rowData = [k.nama, k.jabatan];
+      days.forEach(day => {
+        const record = getRecord(k.id, day);
+        const dow = getDay(day);
+        const tgl = format(day, 'yyyy-MM-dd');
+        const isLibur = dow === 0 || dow === 6 || isHariLibur(tgl);
+        rowData.push(record ? record.status : (isLibur ? 'Libur' : '-'));
+      });
+      const row = worksheet.addRow(rowData);
+      
+      row.eachCell((cell, colNumber) => {
+        cell.border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        cell.alignment = { vertical: 'middle', horizontal: colNumber > 2 ? 'center' : 'left' };
+        
+        // Colors for status
+        if (colNumber > 2) {
+          const val = cell.value;
+          if (val === 'Hadir') { cell.font = { color: { argb: 'FF00B050' }, bold: true }; }
+          else if (val === 'Sakit') { cell.font = { color: { argb: 'FFFF0000' }, bold: true }; }
+          else if (val === 'Izin') { cell.font = { color: { argb: 'FFE36C09' }, bold: true }; }
+          else if (val === 'Cuti') { cell.font = { color: { argb: 'FF0070C0' }, bold: true }; }
+          else if (val === 'Alpha') { cell.font = { color: { argb: 'FF7F7F7F' }, bold: true }; }
+          else if (val === 'Libur') { 
+            cell.font = { color: { argb: 'FFD9534F' }, bold: true }; 
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDF0F0' } };
+          }
+          else { cell.font = { color: { argb: 'FFD9D9D9' } }; }
+        }
+      });
+    });
+
+    // Column widths
+    worksheet.columns.forEach((col, i) => {
+      if (i === 0) col.width = 25;
+      else if (i === 1) col.width = 20;
+      else col.width = 8;
+    });
+
+    // Freeze panes
+    worksheet.views = [
+      { state: 'frozen', xSplit: 2, ySplit: 1 }
+    ];
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), `Laporan_Absensi_${activeMonth}.xlsx`);
+  };
+
+  const exportPDF = () => {
+    try {
+      const doc = new jsPDF('landscape', 'pt', 'a4');
+      doc.setFontSize(14);
+      doc.text(`Laporan Absensi Karyawan - Bulan ${activeMonth}`, 40, 40);
+      
+      const head = [['Karyawan', 'Jabatan', ...days.map(d => getDate(d).toString())]];
+      const body = filteredKaryawan.map(k => {
+        const row = [k.nama, k.jabatan];
+        days.forEach(day => {
+          const record = getRecord(k.id, day);
+          const dow = getDay(day);
+          const tgl = format(day, 'yyyy-MM-dd');
+          const isLibur = dow === 0 || dow === 6 || isHariLibur(tgl);
+          row.push(record ? (STATUS_CFG[record.status]?.symbol || '-') : (isLibur ? 'Libur' : '-'));
+        });
+        return row;
+      });
+
+      autoTable(doc, {
+        head: head,
+        body: body,
+        startY: 60,
+        styles: { fontSize: 7, cellPadding: 2, halign: 'center' },
+        columnStyles: {
+          0: { cellWidth: 80, halign: 'left' },
+          1: { cellWidth: 80, halign: 'left' },
+        },
+        headStyles: { fillColor: [41, 128, 185], halign: 'center' },
+      });
+
+      doc.save(`Laporan_Absensi_${activeMonth}.pdf`);
+    } catch (error) {
+      console.error("Gagal export PDF:", error);
+      alert("Terjadi kesalahan saat meng-export PDF.");
+    }
+  };
+
   const openModal = (k, day) => {
     const tgl = format(day, 'yyyy-MM-dd');
     const existing = absensiIndex[tgl]?.[k.id] ?? null;
@@ -142,6 +260,12 @@ export default function LaporanHarian() {
           <p className="text-sm text-gray-500">Rekap kehadiran karyawan — kalender bulanan</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={exportExcel} className="btn-secondary hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-green-700 bg-green-50 border-green-200 hover:bg-green-100 hover:border-green-300">
+            <Download className="w-4 h-4" /> Excel
+          </button>
+          <button onClick={exportPDF} className="btn-secondary hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-red-700 bg-red-50 border-red-200 hover:bg-red-100 hover:border-red-300">
+            <Download className="w-4 h-4" /> PDF
+          </button>
           <button onClick={handleKosongkan} className="btn-danger">
             <Trash2 className="w-4 h-4" /> Kosongkan Bulan Ini
           </button>
