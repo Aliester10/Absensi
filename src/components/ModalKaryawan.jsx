@@ -14,6 +14,7 @@ export default function ModalKaryawan({ onClose, initialData }) {
     telepon:      initialData?.telepon      || '',
     tanggalMasuk: initialData?.tanggalMasuk || '',
     status:       initialData?.status       || 'Aktif',
+    shift:        initialData?.shift        || 'Pagi',
   });
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
@@ -70,7 +71,7 @@ export default function ModalKaryawan({ onClose, initialData }) {
             <input type="tel" value={form.telepon} onChange={set('telepon')} className="input-field" placeholder="08xxxxxxxxxx" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Masuk <span className="text-red-500">*</span></label>
               <input type="date" value={form.tanggalMasuk} onChange={set('tanggalMasuk')} className="input-field" required />
@@ -80,6 +81,14 @@ export default function ModalKaryawan({ onClose, initialData }) {
               <select value={form.status} onChange={set('status')} className="input-field">
                 <option>Aktif</option>
                 <option>Nonaktif</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+              <select value={form.shift} onChange={set('shift')} className="input-field">
+                <option>Pagi</option>
+                <option>Siang</option>
+                <option>Malam</option>
               </select>
             </div>
           </div>

@@ -5,8 +5,9 @@ import {
   getDay, getDate, parse, isToday,
 } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CalendarDays, Plus, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Plus, Search, Trash2 } from 'lucide-react';
 import ModalAbsensi from '../components/ModalAbsensi';
+import ModalConfirm from '../components/ModalConfirm';
 
 const STATUS_CFG = {
   Hadir: { symbol: '✓', bg: 'bg-green-100',  text: 'text-green-700'  },
@@ -19,12 +20,20 @@ const STATUS_CFG = {
 const DAY_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 export default function LaporanHarian() {
-  const { karyawan, absensi, tambahAbsensi, updateAbsensi, isHariLibur, getInfoLibur } = useApp();
+  const { karyawan, absensi, tambahAbsensi, updateAbsensi, isHariLibur, getInfoLibur, kosongkanAbsensiBulan } = useApp();
 
   const [activeMonth, setActiveMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    confirmText: '',
+    confirmTheme: 'primary',
+  });
 
   const days = useMemo(() => {
     const base = parse(activeMonth, 'yyyy-MM', new Date());
@@ -62,16 +71,41 @@ export default function LaporanHarian() {
   };
 
   const generateSemua = () => {
-    days.forEach((day) => {
-      const dow = getDay(day);
-      const tgl = format(day, 'yyyy-MM-dd');
-      // Skip Sabtu, Minggu, dan hari libur
-      if (dow === 0 || dow === 6 || isHariLibur(tgl)) return;
-      karyawan.forEach((k) => {
-        if (!absensiIndex[tgl]?.[k.id]) {
-          tambahAbsensi({ karyawanId: k.id, nama: k.nama, jabatan: k.jabatan, departemen: k.departemen, tanggal: tgl, jamMasuk: '08:00', jamKeluar: '17:00', status: 'Hadir', keterangan: '' });
-        }
-      });
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Generate Absensi Bulanan',
+      message: 'Apakah Anda yakin ingin men-generate otomatis absensi untuk bulan ini? Data yang kosong akan otomatis diisi status Hadir sesuai shift karyawan.',
+      confirmText: 'Generate Sekarang',
+      confirmTheme: 'primary',
+      onConfirm: () => {
+        days.forEach((day) => {
+          const dow = getDay(day);
+          const tgl = format(day, 'yyyy-MM-dd');
+          if (dow === 0 || dow === 6 || isHariLibur(tgl)) return;
+          karyawan.forEach((k) => {
+            if (!absensiIndex[tgl]?.[k.id]) {
+              const shift = k.shift || 'Pagi';
+              let jamMasuk = '08:00';
+              let jamKeluar = '17:00';
+              if (shift === 'Siang') { jamMasuk = '16:00'; jamKeluar = '00:00'; }
+              if (shift === 'Malam') { jamMasuk = '00:00'; jamKeluar = '08:00'; }
+              tambahAbsensi({ karyawanId: k.id, nama: k.nama, jabatan: k.jabatan, departemen: k.departemen, tanggal: tgl, jamMasuk, jamKeluar, status: 'Hadir', keterangan: '', shift });
+            }
+          });
+        });
+      }
+    });
+  };
+
+
+  const handleKosongkan = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Kosongkan Absensi',
+      message: 'Apakah Anda yakin ingin mengosongkan semua data absensi di bulan ini? Aksi ini tidak dapat dibatalkan.',
+      confirmText: 'Ya, Kosongkan',
+      confirmTheme: 'danger',
+      onConfirm: () => kosongkanAbsensiBulan(activeMonth)
     });
   };
 
@@ -108,6 +142,9 @@ export default function LaporanHarian() {
           <p className="text-sm text-gray-500">Rekap kehadiran karyawan — kalender bulanan</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={handleKosongkan} className="btn-danger">
+            <Trash2 className="w-4 h-4" /> Kosongkan Bulan Ini
+          </button>
           <button onClick={generateSemua} className="btn-secondary">
             <CalendarDays className="w-4 h-4" /> Generate Bulan Ini
           </button>
@@ -184,7 +221,7 @@ export default function LaporanHarian() {
       {/* Tabel Kalender */}
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="border-collapse" style={{ minWidth: `${200 + days.length * 38}px` }}>
+          <table className="border-collapse w-full" style={{ minWidth: `${200 + days.length * 38}px` }}>
             <thead>
               <tr>
                 <th
@@ -297,6 +334,16 @@ export default function LaporanHarian() {
           preselectedKaryawan={modalData?.karyawan}
         />
       )}
+
+      <ModalConfirm
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        confirmTheme={confirmDialog.confirmTheme}
+      />
     </div>
   );
 }

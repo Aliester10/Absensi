@@ -149,7 +149,7 @@ export default function Dashboard() {
 
         {/* Grid kalender */}
         <div className="overflow-x-auto">
-          <table className="border-collapse" style={{ minWidth: `${180 + days.length * 36}px` }}>
+          <table className="border-collapse w-full" style={{ minWidth: `${180 + days.length * 36}px` }}>
             <thead>
               <tr>
                 <th

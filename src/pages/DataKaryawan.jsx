@@ -92,6 +92,7 @@ export default function DataKaryawan() {
                   ['Email',      k.email],
                   ['Telepon',    k.telepon],
                   ['Tgl Masuk',  k.tanggalMasuk],
+                  ['Shift',      k.shift || 'Pagi'],
                 ].map(([label, val]) => (
                   <div key={label} className="flex justify-between gap-2">
                     <span className="text-gray-400 flex-shrink-0">{label}</span>

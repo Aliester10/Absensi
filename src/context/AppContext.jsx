@@ -75,24 +75,52 @@ export function AppProvider({ children }) {
     setAbsensi((prev) => prev.map((a) => (a.id === id ? { ...a, ...data } : a)));
   };
   const getAbsensiHarian = (tanggal) => absensi.filter((a) => a.tanggal === tanggal);
+  const kosongkanAbsensiBulan = (bulanPrefix) => {
+    setAbsensi((prev) => prev.filter((a) => !a.tanggal.startsWith(bulanPrefix)));
+  };
 
   // Pengajuan
   const tambahPengajuan = (data) => {
     const id = `PGJ-${Date.now()}`;
     const newPengajuan = { ...data, id, status: 'Pending', createdAt: format(new Date(), 'yyyy-MM-dd HH:mm') };
     setPengajuan((prev) => [...prev, newPengajuan]);
-    const today = format(new Date(), 'yyyy-MM-dd');
-    if (data.tanggalMulai === today) {
-      const karyawanData = karyawan.find((k) => k.id === data.karyawanId);
-      if (karyawanData) {
-        tambahAbsensi({
-          karyawanId: data.karyawanId, nama: karyawanData.nama,
-          jabatan: karyawanData.jabatan, departemen: karyawanData.departemen,
-          tanggal: today, jamMasuk: '-', jamKeluar: '-',
-          status: data.jenis, keterangan: data.keterangan,
+    
+    const startDate = new Date(data.tanggalMulai);
+    const endDate = new Date(data.tanggalSelesai);
+    const karyawanData = karyawan.find((k) => k.id === data.karyawanId);
+    
+    if (karyawanData && startDate <= endDate) {
+      const newAbsensiRecords = [];
+      let currentDate = new Date(startDate);
+      let index = 0;
+      
+      while (currentDate <= endDate) {
+        const tgl = format(currentDate, 'yyyy-MM-dd');
+        newAbsensiRecords.push({
+          id: `ABS-${Date.now()}-${index++}`,
+          karyawanId: karyawanData.id,
+          nama: karyawanData.nama,
+          jabatan: karyawanData.jabatan,
+          departemen: karyawanData.departemen,
+          tanggal: tgl,
+          jamMasuk: '-',
+          jamKeluar: '-',
+          status: data.jenis,
+          keterangan: data.keterangan,
+          shift: karyawanData.shift || 'Pagi'
+        });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      if (newAbsensiRecords.length > 0) {
+        setAbsensi((prev) => {
+          const datesSet = new Set(newAbsensiRecords.map(r => r.tanggal));
+          const filteredPrev = prev.filter(a => !(a.karyawanId === karyawanData.id && datesSet.has(a.tanggal)));
+          return [...filteredPrev, ...newAbsensiRecords];
         });
       }
     }
+    
     return newPengajuan;
   };
   const updateStatusPengajuan = (id, status) => {
@@ -120,7 +148,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       karyawan, tambahKaryawan, updateKaryawan, hapusKaryawan,
-      absensi, tambahAbsensi, updateAbsensi, getAbsensiHarian,
+      absensi, tambahAbsensi, updateAbsensi, getAbsensiHarian, kosongkanAbsensiBulan,
       pengajuan, tambahPengajuan, updateStatusPengajuan,
       hariLibur, tambahHariLibur, updateHariLibur, hapusHariLibur,
       isHariLibur, getInfoLibur,

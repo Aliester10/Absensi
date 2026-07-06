@@ -24,6 +24,7 @@ export default function ModalAbsensi({ onClose, onSave, initialData, tanggal, pr
     jamKeluar:   initialData?.jamKeluar   || '17:00',
     status:      initialData?.status      || 'Hadir',
     keterangan:  initialData?.keterangan  || '',
+    shift:       initialData?.shift       || preselectedKaryawan?.shift || 'Pagi',
   });
 
   const [selectedKaryawan, setSelectedKaryawan] = useState(
@@ -31,9 +32,25 @@ export default function ModalAbsensi({ onClose, onSave, initialData, tanggal, pr
   );
 
   const handleSelectKaryawan = (k) => {
-    if (!k) { setSelectedKaryawan(null); setForm((f) => ({ ...f, karyawanId: '', nama: '', jabatan: '', departemen: '' })); return; }
+    if (!k) { setSelectedKaryawan(null); setForm((f) => ({ ...f, karyawanId: '', nama: '', jabatan: '', departemen: '', shift: 'Pagi', jamMasuk: '08:00', jamKeluar: '17:00' })); return; }
     setSelectedKaryawan(k);
-    setForm((f) => ({ ...f, karyawanId: k.id, nama: k.nama, jabatan: k.jabatan, departemen: k.departemen }));
+    
+    let jamMasuk = '08:00';
+    let jamKeluar = '17:00';
+    const shift = k.shift || 'Pagi';
+    if (shift === 'Siang') { jamMasuk = '16:00'; jamKeluar = '00:00'; }
+    if (shift === 'Malam') { jamMasuk = '00:00'; jamKeluar = '08:00'; }
+    
+    setForm((f) => ({ ...f, karyawanId: k.id, nama: k.nama, jabatan: k.jabatan, departemen: k.departemen, shift, jamMasuk, jamKeluar }));
+  };
+
+  const handleShiftChange = (e) => {
+    const shift = e.target.value;
+    let jamMasuk = '08:00';
+    let jamKeluar = '17:00';
+    if (shift === 'Siang') { jamMasuk = '16:00'; jamKeluar = '00:00'; }
+    if (shift === 'Malam') { jamMasuk = '00:00'; jamKeluar = '08:00'; }
+    setForm(f => ({ ...f, shift, jamMasuk, jamKeluar }));
   };
 
   const handleSubmit = (e) => {
@@ -81,6 +98,16 @@ export default function ModalAbsensi({ onClose, onSave, initialData, tanggal, pr
               <p className="text-blue-700 text-xs mt-0.5">{form.karyawanId} · {form.jabatan} · {form.departemen}</p>
             </div>
           )}
+
+          {/* Shift */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+            <select value={form.shift} onChange={handleShiftChange} className="input-field">
+              <option value="Pagi">Pagi (08:00 - 17:00)</option>
+              <option value="Siang">Siang (16:00 - 00:00)</option>
+              <option value="Malam">Malam (00:00 - 08:00)</option>
+            </select>
+          </div>
 
           {/* Jam */}
           <div className="grid grid-cols-2 gap-3">
