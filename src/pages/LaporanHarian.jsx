@@ -87,6 +87,7 @@ export default function LaporanHarian() {
           const tgl = format(day, 'yyyy-MM-dd');
           if (dow === 0 || dow === 6 || isHariLibur(tgl)) return;
           karyawan.forEach((k) => {
+            if (k.tanggalMasuk && tgl < k.tanggalMasuk) return; // Skip if hasn't joined yet
             if (!absensiIndex[tgl]?.[k.id]) {
               const shiftName = k.shift || (shifts.length > 0 ? shifts[0].nama : 'Pagi');
               const shiftData = shifts.find((s) => s.nama === shiftName);
@@ -157,7 +158,8 @@ export default function LaporanHarian() {
         const dow = getDay(day);
         const tgl = format(day, 'yyyy-MM-dd');
         const isLibur = dow === 0 || dow === 6 || isHariLibur(tgl);
-        rowData.push(record ? record.status : (isLibur ? 'Libur' : '-'));
+        const belumBergabung = k.tanggalMasuk && tgl < k.tanggalMasuk;
+        rowData.push(belumBergabung ? 'N/A' : record ? record.status : (isLibur ? 'Libur' : '-'));
       });
       const row = worksheet.addRow(rowData);
       
@@ -178,6 +180,10 @@ export default function LaporanHarian() {
           else if (val === 'Libur') { 
             cell.font = { color: { argb: 'FFD9534F' }, bold: true }; 
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDF0F0' } };
+          }
+          else if (val === 'N/A') {
+            cell.font = { color: { argb: 'FFA6A6A6' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
           }
           else { cell.font = { color: { argb: 'FFD9D9D9' } }; }
         }
@@ -215,7 +221,8 @@ export default function LaporanHarian() {
           const dow = getDay(day);
           const tgl = format(day, 'yyyy-MM-dd');
           const isLibur = dow === 0 || dow === 6 || isHariLibur(tgl);
-          row.push(record ? (STATUS_CFG[record.status]?.symbol || '-') : (isLibur ? 'Libur' : '-'));
+          const belumBergabung = k.tanggalMasuk && tgl < k.tanggalMasuk;
+          row.push(belumBergabung ? '' : record ? (STATUS_CFG[record.status]?.symbol || '-') : (isLibur ? 'Libur' : '-'));
         });
         return row;
       });
@@ -352,6 +359,10 @@ export default function LaporanHarian() {
           <span className="w-5 h-5 rounded flex items-center justify-center border border-dashed border-gray-300 text-gray-300">·</span>
           Belum diisi
         </div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+          <span className="w-5 h-5 rounded flex items-center justify-center bg-gray-100 text-gray-400 font-bold">/</span>
+          Belum bergabung
+        </div>
       </div>
 
       {/* Tabel Kalender */}
@@ -419,6 +430,7 @@ export default function LaporanHarian() {
                       const tgl = format(day, 'yyyy-MM-dd');
                       const liburInfo = getInfoLibur(tgl);
                       const isLibur = isWeekend || !!liburInfo;
+                      const belumBergabung = k.tanggalMasuk && tgl < k.tanggalMasuk;
                       const record = getRecord(k.id, day);
                       const cfg = record ? STATUS_CFG[record.status] : null;
                       const isTodayDay = isToday(day);
@@ -426,10 +438,14 @@ export default function LaporanHarian() {
                       return (
                         <td
                           key={day.toISOString()}
-                          className={`border-b border-r border-gray-100 p-1 text-center ${isLibur ? 'bg-red-50' : ''}`}
+                          className={`border-b border-r border-gray-100 p-1 text-center ${isLibur && !belumBergabung ? 'bg-red-50' : ''}`}
                           style={{ minWidth: '36px', width: '36px' }}
                         >
-                          {isLibur ? (
+                          {belumBergabung ? (
+                            <div className="w-6 h-6 mx-auto rounded flex items-center justify-center bg-gray-100/60" title={`Belum bergabung (Masuk: ${k.tanggalMasuk})`}>
+                              <span className="text-gray-300 text-xs font-bold">/</span>
+                            </div>
+                          ) : isLibur ? (
                             <div
                               className="w-6 h-6 mx-auto rounded flex items-center justify-center bg-red-100"
                               title={liburLabel}
