@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Clock } from 'lucide-react';
 import KaryawanAutocomplete from './KaryawanAutocomplete';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import { useApp } from '../context/AppContext';
 
 const statusOptions = ['Hadir', 'Sakit', 'Izin', 'Cuti', 'Alpha'];
 
@@ -15,16 +16,31 @@ const STATUS_ACTIVE = {
 };
 
 export default function ModalAbsensi({ onClose, onSave, initialData, tanggal, preselectedKaryawan }) {
+  const { shifts } = useApp();
+
+  const getShiftTimes = (shiftNama) => {
+    const shiftData = shifts.find((s) => s.nama === shiftNama);
+    return shiftData
+      ? { jamMasuk: shiftData.jamMasuk, jamKeluar: shiftData.jamKeluar }
+      : { jamMasuk: '08:00', jamKeluar: '17:00' };
+  };
+
+  const defaultShift = shifts.length > 0 ? shifts[0].nama : 'Pagi';
+
+  // Shift & jam otomatis dari data karyawan
+  const karyawanShift = initialData?.shift || preselectedKaryawan?.shift || defaultShift;
+  const shiftTimes = getShiftTimes(karyawanShift);
+
   const [form, setForm] = useState({
     karyawanId:  initialData?.karyawanId  || preselectedKaryawan?.id         || '',
     nama:        initialData?.nama        || preselectedKaryawan?.nama        || '',
     jabatan:     initialData?.jabatan     || preselectedKaryawan?.jabatan     || '',
     departemen:  initialData?.departemen  || preselectedKaryawan?.departemen  || '',
-    jamMasuk:    initialData?.jamMasuk    || '08:00',
-    jamKeluar:   initialData?.jamKeluar   || '17:00',
+    jamMasuk:    shiftTimes.jamMasuk,
+    jamKeluar:   shiftTimes.jamKeluar,
     status:      initialData?.status      || 'Hadir',
     keterangan:  initialData?.keterangan  || '',
-    shift:       initialData?.shift       || preselectedKaryawan?.shift || 'Pagi',
+    shift:       karyawanShift,
   });
 
   const [selectedKaryawan, setSelectedKaryawan] = useState(
@@ -32,25 +48,18 @@ export default function ModalAbsensi({ onClose, onSave, initialData, tanggal, pr
   );
 
   const handleSelectKaryawan = (k) => {
-    if (!k) { setSelectedKaryawan(null); setForm((f) => ({ ...f, karyawanId: '', nama: '', jabatan: '', departemen: '', shift: 'Pagi', jamMasuk: '08:00', jamKeluar: '17:00' })); return; }
+    if (!k) {
+      setSelectedKaryawan(null);
+      const times = getShiftTimes(defaultShift);
+      setForm((f) => ({ ...f, karyawanId: '', nama: '', jabatan: '', departemen: '', shift: defaultShift, jamMasuk: times.jamMasuk, jamKeluar: times.jamKeluar }));
+      return;
+    }
     setSelectedKaryawan(k);
-    
-    let jamMasuk = '08:00';
-    let jamKeluar = '17:00';
-    const shift = k.shift || 'Pagi';
-    if (shift === 'Siang') { jamMasuk = '16:00'; jamKeluar = '00:00'; }
-    if (shift === 'Malam') { jamMasuk = '00:00'; jamKeluar = '08:00'; }
-    
-    setForm((f) => ({ ...f, karyawanId: k.id, nama: k.nama, jabatan: k.jabatan, departemen: k.departemen, shift, jamMasuk, jamKeluar }));
-  };
 
-  const handleShiftChange = (e) => {
-    const shift = e.target.value;
-    let jamMasuk = '08:00';
-    let jamKeluar = '17:00';
-    if (shift === 'Siang') { jamMasuk = '16:00'; jamKeluar = '00:00'; }
-    if (shift === 'Malam') { jamMasuk = '00:00'; jamKeluar = '08:00'; }
-    setForm(f => ({ ...f, shift, jamMasuk, jamKeluar }));
+    const shift = k.shift || defaultShift;
+    const times = getShiftTimes(shift);
+
+    setForm((f) => ({ ...f, karyawanId: k.id, nama: k.nama, jabatan: k.jabatan, departemen: k.departemen, shift, jamMasuk: times.jamMasuk, jamKeluar: times.jamKeluar }));
   };
 
   const handleSubmit = (e) => {
@@ -99,27 +108,16 @@ export default function ModalAbsensi({ onClose, onSave, initialData, tanggal, pr
             </div>
           )}
 
-          {/* Shift */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
-            <select value={form.shift} onChange={handleShiftChange} className="input-field">
-              <option value="Pagi">Pagi (08:00 - 17:00)</option>
-              <option value="Siang">Siang (16:00 - 00:00)</option>
-              <option value="Malam">Malam (00:00 - 08:00)</option>
-            </select>
-          </div>
-
-          {/* Jam */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Jam Masuk</label>
-              <input type="time" value={form.jamMasuk} onChange={(e) => setForm({ ...form, jamMasuk: e.target.value })} className="input-field" />
+          {/* Shift info (read-only, dari data karyawan) */}
+          {form.karyawanId && (
+            <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-2.5">
+              <Clock className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-indigo-700">Shift: {form.shift}</p>
+                <p className="text-xs text-indigo-500">Jam Masuk {form.jamMasuk} — Jam Keluar {form.jamKeluar}</p>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Jam Keluar</label>
-              <input type="time" value={form.jamKeluar} onChange={(e) => setForm({ ...form, jamKeluar: e.target.value })} className="input-field" />
-            </div>
-          </div>
+          )}
 
           {/* Status */}
           <div>
@@ -152,3 +150,4 @@ export default function ModalAbsensi({ onClose, onSave, initialData, tanggal, pr
     </div>
   );
 }
+

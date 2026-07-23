@@ -1,3 +1,9 @@
+export const initialShifts = [
+  { id: 'SFT-001', nama: 'Pagi',   jamMasuk: '08:00', jamKeluar: '17:00' },
+  { id: 'SFT-002', nama: 'Siang',  jamMasuk: '16:00', jamKeluar: '00:00' },
+  { id: 'SFT-003', nama: 'Malam',  jamMasuk: '00:00', jamKeluar: '08:00' },
+];
+
 export const initialKaryawan = [
   {
     id: 'KRY-001',
@@ -89,17 +95,11 @@ export const initialKaryawan = [
   },
 ];
 
-export const generateAbsensiHari = (karyawanList, tanggal) => {
+export const generateAbsensiHari = (karyawanList, tanggal, shifts = initialShifts) => {
   return karyawanList.map((k) => {
-    let jamMasuk = '08:00';
-    let jamKeluar = '17:00';
-    if (k.shift === 'Siang') {
-      jamMasuk = '16:00';
-      jamKeluar = '00:00';
-    } else if (k.shift === 'Malam') {
-      jamMasuk = '00:00';
-      jamKeluar = '08:00';
-    }
+    const shiftData = shifts.find((s) => s.nama === (k.shift || 'Pagi'));
+    const jamMasuk  = shiftData ? shiftData.jamMasuk  : '08:00';
+    const jamKeluar = shiftData ? shiftData.jamKeluar : '17:00';
 
     return {
       id: `ABS-${tanggal}-${k.id}`,

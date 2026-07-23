@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Users, ClipboardList, FileText, Menu, Building2, CalendarOff } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, Clock, Menu, Building2, CalendarOff } from 'lucide-react';
 
 const navItems = [
   { to: '/',              label: 'Dashboard',          icon: LayoutDashboard, end: true },
   { to: '/laporan-harian', label: 'Laporan Harian',     icon: ClipboardList },
+  { to: '/shift',          label: 'Data Shift',          icon: Clock },
   { to: '/hari-libur',    label: 'Hari Libur',          icon: CalendarOff },
   { to: '/karyawan',      label: 'Data Karyawan',        icon: Users },
 ];

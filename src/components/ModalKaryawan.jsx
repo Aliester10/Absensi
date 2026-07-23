@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 const departemenOptions = ['Human Resource', 'Keuangan', 'IT', 'Marketing', 'Produksi', 'Logistik', 'Umum', 'Operasional'];
 
 export default function ModalKaryawan({ onClose, initialData }) {
-  const { tambahKaryawan, updateKaryawan } = useApp();
+  const { tambahKaryawan, updateKaryawan, shifts } = useApp();
   const [form, setForm] = useState({
     nama:         initialData?.nama         || '',
     jabatan:      initialData?.jabatan      || '',
@@ -14,7 +14,7 @@ export default function ModalKaryawan({ onClose, initialData }) {
     telepon:      initialData?.telepon      || '',
     tanggalMasuk: initialData?.tanggalMasuk || '',
     status:       initialData?.status       || 'Aktif',
-    shift:        initialData?.shift        || 'Pagi',
+    shift:        initialData?.shift        || (shifts.length > 0 ? shifts[0].nama : 'Pagi'),
   });
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
@@ -86,9 +86,9 @@ export default function ModalKaryawan({ onClose, initialData }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
               <select value={form.shift} onChange={set('shift')} className="input-field">
-                <option>Pagi</option>
-                <option>Siang</option>
-                <option>Malam</option>
+                {shifts.map((s) => (
+                  <option key={s.id} value={s.nama}>{s.nama}</option>
+                ))}
               </select>
             </div>
           </div>

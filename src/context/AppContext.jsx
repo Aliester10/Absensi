@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initialKaryawan } from '../data/initialData';
+import { initialKaryawan, initialShifts } from '../data/initialData';
 import { format } from 'date-fns';
 
 const AppContext = createContext();
@@ -35,20 +35,20 @@ export function AppProvider({ children }) {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [pengajuan, setPengajuan] = useState(() => {
-    const saved = localStorage.getItem('pengajuan');
-    return saved ? JSON.parse(saved) : [];
-  });
-
   const [hariLibur, setHariLibur] = useState(() => {
     const saved = localStorage.getItem('hariLibur');
     return saved ? JSON.parse(saved) : defaultHariLibur;
   });
 
+  const [shifts, setShifts] = useState(() => {
+    const saved = localStorage.getItem('shifts');
+    return saved ? JSON.parse(saved) : initialShifts;
+  });
+
   useEffect(() => { localStorage.setItem('karyawan', JSON.stringify(karyawan)); }, [karyawan]);
   useEffect(() => { localStorage.setItem('absensi', JSON.stringify(absensi)); }, [absensi]);
-  useEffect(() => { localStorage.setItem('pengajuan', JSON.stringify(pengajuan)); }, [pengajuan]);
   useEffect(() => { localStorage.setItem('hariLibur', JSON.stringify(hariLibur)); }, [hariLibur]);
+  useEffect(() => { localStorage.setItem('shifts', JSON.stringify(shifts)); }, [shifts]);
 
   // Karyawan CRUD
   const tambahKaryawan = (data) => {
@@ -79,52 +79,18 @@ export function AppProvider({ children }) {
     setAbsensi((prev) => prev.filter((a) => !a.tanggal.startsWith(bulanPrefix)));
   };
 
-  // Pengajuan
-  const tambahPengajuan = (data) => {
-    const id = `PGJ-${Date.now()}`;
-    const newPengajuan = { ...data, id, status: 'Pending', createdAt: format(new Date(), 'yyyy-MM-dd HH:mm') };
-    setPengajuan((prev) => [...prev, newPengajuan]);
-    
-    const startDate = new Date(data.tanggalMulai);
-    const endDate = new Date(data.tanggalSelesai);
-    const karyawanData = karyawan.find((k) => k.id === data.karyawanId);
-    
-    if (karyawanData && startDate <= endDate) {
-      const newAbsensiRecords = [];
-      let currentDate = new Date(startDate);
-      let index = 0;
-      
-      while (currentDate <= endDate) {
-        const tgl = format(currentDate, 'yyyy-MM-dd');
-        newAbsensiRecords.push({
-          id: `ABS-${Date.now()}-${index++}`,
-          karyawanId: karyawanData.id,
-          nama: karyawanData.nama,
-          jabatan: karyawanData.jabatan,
-          departemen: karyawanData.departemen,
-          tanggal: tgl,
-          jamMasuk: '-',
-          jamKeluar: '-',
-          status: data.jenis,
-          keterangan: data.keterangan,
-          shift: karyawanData.shift || 'Pagi'
-        });
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      if (newAbsensiRecords.length > 0) {
-        setAbsensi((prev) => {
-          const datesSet = new Set(newAbsensiRecords.map(r => r.tanggal));
-          const filteredPrev = prev.filter(a => !(a.karyawanId === karyawanData.id && datesSet.has(a.tanggal)));
-          return [...filteredPrev, ...newAbsensiRecords];
-        });
-      }
-    }
-    
-    return newPengajuan;
+  // Shift CRUD
+  const tambahShift = (data) => {
+    const id = `SFT-${Date.now()}`;
+    const newShift = { ...data, id };
+    setShifts((prev) => [...prev, newShift]);
+    return newShift;
   };
-  const updateStatusPengajuan = (id, status) => {
-    setPengajuan((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+  const updateShift = (id, data) => {
+    setShifts((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+  };
+  const hapusShift = (id) => {
+    setShifts((prev) => prev.filter((s) => s.id !== id));
   };
 
   // Hari Libur CRUD
@@ -149,7 +115,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       karyawan, tambahKaryawan, updateKaryawan, hapusKaryawan,
       absensi, tambahAbsensi, updateAbsensi, getAbsensiHarian, kosongkanAbsensiBulan,
-      pengajuan, tambahPengajuan, updateStatusPengajuan,
+      shifts, tambahShift, updateShift, hapusShift,
       hariLibur, tambahHariLibur, updateHariLibur, hapusHariLibur,
       isHariLibur, getInfoLibur,
     }}>
@@ -161,3 +127,4 @@ export function AppProvider({ children }) {
 export function useApp() {
   return useContext(AppContext);
 }
+

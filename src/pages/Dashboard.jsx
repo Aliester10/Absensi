@@ -6,7 +6,7 @@ import {
 } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import {
-  Users, CheckCircle, XCircle, Clock, FileText,
+  Users, CheckCircle, XCircle, Clock,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
@@ -23,25 +23,20 @@ const STATUS_CFG = {
 const DAY_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 export default function Dashboard() {
-  const { karyawan, absensi, pengajuan, isHariLibur, getInfoLibur } = useApp();
+  const { karyawan, absensi, shifts, isHariLibur, getInfoLibur } = useApp();
   const navigate = useNavigate();
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const absensiHari = absensi.filter((a) => a.tanggal === today);
 
   const countStatus = (s) => absensiHari.filter((a) => a.status === s).length;
-  const pendingPengajuan = pengajuan.filter((p) => p.status === 'Pending').length;
 
   const stats = [
     { label: 'Total Karyawan',    value: karyawan.length,  icon: Users,       iconBg: 'bg-blue-50',   iconColor: 'text-blue-600'   },
     { label: 'Hadir Hari Ini',    value: countStatus('Hadir'), icon: CheckCircle, iconBg: 'bg-green-50',  iconColor: 'text-green-600'  },
     { label: 'Tidak Hadir',       value: countStatus('Sakit') + countStatus('Izin') + countStatus('Cuti') + countStatus('Alpha'), icon: XCircle, iconBg: 'bg-red-50', iconColor: 'text-red-600' },
-    { label: 'Pengajuan Pending', value: pendingPengajuan, icon: Clock,       iconBg: 'bg-yellow-50', iconColor: 'text-yellow-600' },
+    { label: 'Total Shift',       value: shifts.length,    icon: Clock,       iconBg: 'bg-yellow-50', iconColor: 'text-yellow-600' },
   ];
-
-  const recentPengajuan = [...pengajuan]
-    .sort((a, b) => b.createdAt?.localeCompare(a.createdAt))
-    .slice(0, 5);
 
   const [activeMonth, setActiveMonth] = useState(() => format(new Date(), 'yyyy-MM'));
 
@@ -300,28 +295,31 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Pengajuan terbaru */}
+        {/* Data Shift */}
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-4 h-4 text-gray-500" />
-            <h3 className="font-semibold text-gray-900">Pengajuan Terbaru</h3>
+            <Clock className="w-4 h-4 text-gray-500" />
+            <h3 className="font-semibold text-gray-900">Data Shift</h3>
           </div>
-          {recentPengajuan.length === 0 ? (
+          {shifts.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
-              <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Belum ada pengajuan</p>
+              <Clock className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Belum ada data shift</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-56 overflow-y-auto">
-              {recentPengajuan.map((p) => (
-                <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{p.namakaryawan}</p>
-                    <p className="text-xs text-gray-500">{p.jenis} &bull; {p.tanggalMulai}</p>
+              {shifts.map((s) => {
+                const count = karyawan.filter((k) => k.shift === s.nama).length;
+                return (
+                  <div key={s.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{s.nama}</p>
+                      <p className="text-xs text-gray-500">{s.jamMasuk} — {s.jamKeluar}</p>
+                    </div>
+                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-md">{count} karyawan</span>
                   </div>
-                  <StatusBadge status={p.status} />
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
