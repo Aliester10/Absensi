@@ -24,7 +24,7 @@ const STATUS_CFG = {
 const DAY_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 export default function LaporanHarian() {
-  const { karyawan, absensi, tambahAbsensi, updateAbsensi, isHariLibur, getInfoLibur, kosongkanAbsensiBulan } = useApp();
+  const { karyawan, absensi, shifts, tambahAbsensi, updateAbsensi, isHariLibur, getInfoLibur, kosongkanAbsensiBulan } = useApp();
 
   const [activeMonth, setActiveMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [search, setSearch] = useState('');
@@ -88,12 +88,23 @@ export default function LaporanHarian() {
           if (dow === 0 || dow === 6 || isHariLibur(tgl)) return;
           karyawan.forEach((k) => {
             if (!absensiIndex[tgl]?.[k.id]) {
-              const shift = k.shift || 'Pagi';
-              let jamMasuk = '08:00';
-              let jamKeluar = '17:00';
-              if (shift === 'Siang') { jamMasuk = '16:00'; jamKeluar = '00:00'; }
-              if (shift === 'Malam') { jamMasuk = '00:00'; jamKeluar = '08:00'; }
-              tambahAbsensi({ karyawanId: k.id, nama: k.nama, jabatan: k.jabatan, departemen: k.departemen, tanggal: tgl, jamMasuk, jamKeluar, status: 'Hadir', keterangan: '', shift });
+              const shiftName = k.shift || (shifts.length > 0 ? shifts[0].nama : 'Pagi');
+              const shiftData = shifts.find((s) => s.nama === shiftName);
+              const jamMasuk = shiftData ? shiftData.jamMasuk : '08:00';
+              const jamKeluar = shiftData ? shiftData.jamKeluar : '17:00';
+              tambahAbsensi({ 
+                id: `ABS-${tgl}-${k.id}`,
+                karyawanId: k.id, 
+                nama: k.nama, 
+                jabatan: k.jabatan, 
+                departemen: k.departemen, 
+                tanggal: tgl, 
+                jamMasuk, 
+                jamKeluar, 
+                status: 'Hadir', 
+                keterangan: '', 
+                shift: shiftName 
+              });
             }
           });
         });

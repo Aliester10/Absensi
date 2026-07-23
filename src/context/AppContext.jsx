@@ -66,7 +66,7 @@ export function AppProvider({ children }) {
 
   // Absensi
   const tambahAbsensi = (data) => {
-    const id = `ABS-${Date.now()}`;
+    const id = data.id || `ABS-${data.tanggal}-${data.karyawanId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const newAbsensi = { ...data, id };
     setAbsensi((prev) => [...prev, newAbsensi]);
     return newAbsensi;
