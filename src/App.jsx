@@ -5,7 +5,6 @@ import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import LaporanHarian from './pages/LaporanHarian';
-import Pengajuan from './pages/Pengajuan';
 import HariLibur from './pages/HariLibur';
 import DataKaryawan from './pages/DataKaryawan';
 
@@ -18,7 +17,6 @@ export default function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
             <Route path="laporan-harian" element={<LaporanHarian />} />
-            <Route path="pengajuan" element={<Pengajuan />} />
             <Route path="hari-libur" element={<HariLibur />} />
             <Route path="karyawan" element={<DataKaryawan />} />
           </Route>

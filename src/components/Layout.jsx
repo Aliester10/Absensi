@@ -5,7 +5,6 @@ import { LayoutDashboard, Users, ClipboardList, FileText, Menu, Building2, Calen
 const navItems = [
   { to: '/',              label: 'Dashboard',          icon: LayoutDashboard, end: true },
   { to: '/laporan-harian', label: 'Laporan Harian',     icon: ClipboardList },
-  { to: '/pengajuan',     label: 'Izin / Sakit / Cuti', icon: FileText },
   { to: '/hari-libur',    label: 'Hari Libur',          icon: CalendarOff },
   { to: '/karyawan',      label: 'Data Karyawan',        icon: Users },
 ];
