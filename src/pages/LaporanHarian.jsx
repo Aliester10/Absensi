@@ -203,8 +203,9 @@ export default function LaporanHarian() {
   const exportPDF = () => {
     try {
       const doc = new jsPDF('landscape', 'pt', 'a4');
+      const formattedMonth = format(parse(activeMonth, 'yyyy-MM', new Date()), 'MM-yyyy');
       doc.setFontSize(14);
-      doc.text(`Laporan Absensi Karyawan - Bulan ${activeMonth}`, 40, 40);
+      doc.text(`Laporan Absensi Karyawan - Bulan ${formattedMonth}`, 40, 40);
       
       const head = [['Karyawan', 'Jabatan', ...days.map(d => getDate(d).toString())]];
       const body = filteredKaryawan.map(k => {
